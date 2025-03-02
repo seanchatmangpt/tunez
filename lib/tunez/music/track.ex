@@ -3,7 +3,17 @@ defmodule Tunez.Music.Track do
     otp_app: :tunez,
     domain: Tunez.Music,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshGraphql.Resource, AshJsonApi.Resource]
+
+  graphql do
+    type :track
+  end
+
+  json_api do
+    type "track"
+    default_fields [:number, :name, :duration]
+  end
 
   postgres do
     table "tracks"
@@ -49,6 +59,7 @@ defmodule Tunez.Music.Track do
 
     attribute :name, :string do
       allow_nil? false
+      public? true
     end
 
     attribute :duration_seconds, :integer do
@@ -67,7 +78,12 @@ defmodule Tunez.Music.Track do
   end
 
   calculations do
-    calculate :number, :integer, expr(order + 1)
-    calculate :duration, :string, Tunez.Music.Calculations.SecondsToMinutes
+    calculate :number, :integer, expr(order + 1) do
+      public? true
+    end
+
+    calculate :duration, :string, Tunez.Music.Calculations.SecondsToMinutes do
+      public? true
+    end
   end
 end
