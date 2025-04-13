@@ -1,0 +1,69 @@
+# Set default versions (Using likely stable versions)
+ARG PG_VERSION=16
+ARG APACHE_AGE_VERSION=1.5.0
+
+# Using a standard TimescaleDB image tag for PG16
+FROM timescale/timescaledb:latest-pg16
+
+# Re-declare ARGs after FROM if needed elsewhere
+ARG PG_VERSION
+ARG APACHE_AGE_VERSION
+
+# Switch to root for installing dependencies
+USER root
+
+# Install necessary dependencies efficiently
+RUN apk add --no-cache \
+  htop \
+  nano \
+  git \
+  curl \
+  build-base \
+  postgresql-dev \
+  linux-headers \
+  bison \
+  flex \
+  perl \
+  make \
+  cmake \
+  llvm \
+  clang
+
+# Install Apache AGE
+RUN set -ex && \
+  git clone --depth 1 --branch PG${PG_VERSION} https://github.com/apache/age.git && \
+  cd age && \
+  make USE_PGXS=1 PG_CONFIG=/usr/local/bin/pg_config install && \
+  cd .. && \
+  rm -rf age
+
+# Create data directory and set permissions
+RUN mkdir -p /var/lib/postgresql/data && \
+  chown -R postgres:postgres /var/lib/postgresql && \
+  chmod 700 /var/lib/postgresql/data
+
+# Switch back to postgres user
+USER postgres
+
+# Set environment variables
+ENV PGDATA=/var/lib/postgresql/data
+
+# Add healthcheck
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgresUser -d postgresDB
+
+# Initialize database and AGE extension
+RUN initdb && \
+  pg_ctl start && \
+  sleep 5 && \
+  psql -c "CREATE USER postgresUser WITH SUPERUSER PASSWORD 'postgresPW';" && \
+  psql -c "CREATE DATABASE postgresDB OWNER postgresUser;" && \
+  psql -d postgresDB -c "CREATE EXTENSION age;" && \
+  pg_ctl stop
+
+# Configure PostgreSQL
+RUN echo "shared_preload_libraries = 'timescaledb, age'" >> ${PGDATA}/postgresql.conf && \
+  echo "host all all 0.0.0.0/0 scram-sha-256" >> ${PGDATA}/pg_hba.conf && \
+  echo "local all all trust" >> ${PGDATA}/pg_hba.conf
+
+# Default command is inherited from the base image

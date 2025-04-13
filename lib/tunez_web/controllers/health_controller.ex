@@ -5,3 +5,4 @@ defmodule TunezWeb.HealthController do
     json(conn, %{status: "ok"})
   end
 end
+

@@ -8,9 +8,9 @@ on:
 
 env:
   MIX_ENV: test
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: postgres
-  POSTGRES_DB: ash_swarm_test
+  POSTGRES_USER: postgresUser
+  POSTGRES_PASSWORD: postgresPW
+  POSTGRES_DB: postgresDB_test
 
 permissions:
   contents: read
@@ -19,12 +19,12 @@ jobs:
   test:
     services:
       db:
-        image: postgres:16
+        image: petescarth/postgres-datascience
         ports: ["5432:5432"]
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: ash_swarm_test
+          POSTGRES_USER: postgresUser
+          POSTGRES_PASSWORD: postgresPW
+          POSTGRES_DB: postgresDB_test
         options: --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -115,6 +115,6 @@ jobs:
           echo "DB: $POSTGRES_DB"
           mix test --trace
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgresUser
+          POSTGRES_PASSWORD: postgresPW
           POSTGRES_HOST: localhost

@@ -1,6 +1,9 @@
 defmodule TunezWeb.Router do
   use TunezWeb, :router
 
+  # Health check route
+  get "/health", TunezWeb.HealthController, :index
+
   use AshAuthentication.Phoenix.Router
 
   import AshAuthentication.Plug.Helpers
