@@ -1,0 +1,52 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MIX_ENV: ${MIX_ENV:-dev}   # build-time arg for Elixir environment
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    healthcheck:
+      test: [ 'CMD', 'curl', '-f', 'http://localhost:4000/health' ] # Assuming a /health endpoint exists or will be added
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s # Give time for migrations and startup
+    environment:
+      MIX_ENV: ${MIX_ENV:-dev}
+      DATABASE_URL: ecto://postgresUser:postgresPW@db:5432/postgresDB
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      PHX_HOST: localhost
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db
+    # Explicitly run migrations and then start the server
+    command: >
+      bash -c "mix ecto.migrate && mix phx.server"
+
+  db:
+    image: petescarth/postgres-datascience
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    environment:
+      POSTGRES_PASSWORD: postgresPW
+      POSTGRES_USER: postgresUser
+      POSTGRES_DB: postgresDB
+    ports:
+      - "5455:5432"
+    volumes:
+      - db-data:/home/postgres/pgdata/data
+
+volumes:
+  db-data:
